@@ -1,4 +1,4 @@
-from pmnet import Pmnet
+from psnet import PSNet
 import configparser
 import os
 import tensorflow as tf
@@ -45,21 +45,21 @@ for idx, content_path in enumerate(CONTENT_LIST):
     # get content representations
     tf.reset_default_graph()
     sess = tf.Session()
-    pmnet = Pmnet(config=config,
+    psnet = PSNet(config=config,
                   sess=sess,
                   train_dir=content_dir,
                   mode="test",
                   num_pts=content_ncolor.shape[0])
-    pmnet.restore_model(trained_model)
-    ppt(list(pmnet.node.keys()))
-    # obtained_content_fvs = sess.run({i:pmnet.node_color[i] for i in use_content_color},
-    #                                 feed_dict={pmnet.color: content_ncolor[None, ...],
-    #                                            pmnet.bn_pl: False,
-    #                                            pmnet.dropout_prob_pl: 1.0})
-    obtained_content_fvs = sess.run(pmnet.node,feed_dict={pmnet.color: content_ncolor[None, ...],
-                                               pmnet.geo: content_geo[None,...],
-                                               pmnet.bn_pl: False,
-                                               pmnet.dropout_prob_pl: 1.0})
+    psnet.restore_model(trained_model)
+    ppt(list(psnet.node.keys()))
+    # obtained_content_fvs = sess.run({i:psnet.node_color[i] for i in use_content_color},
+    #                                 feed_dict={psnet.color: content_ncolor[None, ...],
+    #                                            psnet.bn_pl: False,
+    #                                            psnet.dropout_prob_pl: 1.0})
+    obtained_content_fvs = sess.run(psnet.node,feed_dict={psnet.color: content_ncolor[None, ...],
+                                               psnet.geo: content_geo[None,...],
+                                               psnet.bn_pl: False,
+                                               psnet.dropout_prob_pl: 1.0})
     sess.close()
 
     for st_idx, style_path in enumerate(STYLE_LIST):
@@ -80,23 +80,23 @@ for idx, content_path in enumerate(CONTENT_LIST):
         # get style representations
         tf.reset_default_graph()
         sess = tf.Session()
-        pmnet = Pmnet(config=config,
+        psnet = PSNet(config=config,
                       sess=sess,
                       train_dir=style_dir,
                       mode="test",
                       num_pts=style_ncolor.shape[0])
-        pmnet.restore_model(trained_model)
+        psnet.restore_model(trained_model)
         if from_image:
-            obtained_style_fvs = sess.run({i:pmnet.node_color[i] for i in use_style_color},
-                                      feed_dict={pmnet.color: style_ncolor[None, ...],
-                                                 pmnet.bn_pl: False,
-                                                 pmnet.dropout_prob_pl: 1.0})
+            obtained_style_fvs = sess.run({i:psnet.node_color[i] for i in use_style_color},
+                                      feed_dict={psnet.color: style_ncolor[None, ...],
+                                                 psnet.bn_pl: False,
+                                                 psnet.dropout_prob_pl: 1.0})
         else:
-            obtained_style_fvs = sess.run(pmnet.node,
-                                          feed_dict={pmnet.color: style_ncolor[None, ...],
-                                                     pmnet.geo: style_geo[None, ...],
-                                                     pmnet.bn_pl: False,
-                                                     pmnet.dropout_prob_pl: 1.0})
+            obtained_style_fvs = sess.run(psnet.node,
+                                          feed_dict={psnet.color: style_ncolor[None, ...],
+                                                     psnet.geo: style_geo[None, ...],
+                                                     psnet.bn_pl: False,
+                                                     psnet.dropout_prob_pl: 1.0})
         obtained_style_fvs_gram = dict()
         for layer, fvs in obtained_style_fvs.items():
             gram = []
@@ -109,7 +109,7 @@ for idx, content_path in enumerate(CONTENT_LIST):
         tf.reset_default_graph()
         with tf.Graph().as_default() as graph:
             sess = tf.Session()
-            pmnet = Pmnet(config=config,
+            psnet = PSNet(config=config,
                               sess=sess,
                               train_dir=style_dir,
                               mode="styletransfer",
@@ -119,25 +119,25 @@ for idx, content_path in enumerate(CONTENT_LIST):
                               geo_init= tf.constant_initializer(value=content_geo),
                               color_init=tf.constant_initializer(value=content_ncolor),
                               from_image=from_image)
-            pmnet.restore_model(trained_model)
+            psnet.restore_model(trained_model)
             previous_loss = float("inf")
             for i in range(iteration) :
-                pmnet.style_transfer_one_step()
+                psnet.style_transfer_one_step()
                 if from_image:
-                    current_total_loss = sess.run(pmnet.total_loss_color, feed_dict={
-                                                 pmnet.bn_pl: False,
-                                                 pmnet.dropout_prob_pl: 1.0})
+                    current_total_loss = sess.run(psnet.total_loss_color, feed_dict={
+                                                 psnet.bn_pl: False,
+                                                 psnet.dropout_prob_pl: 1.0})
                 else:
-                    current_total_loss = sess.run(pmnet.total_loss_color, feed_dict={
-                        pmnet.bn_pl: False,
-                        pmnet.dropout_prob_pl: 1.0}) + sess.run(pmnet.total_loss_geo, feed_dict={
-                        pmnet.bn_pl: False,
-                        pmnet.dropout_prob_pl: 1.0})
+                    current_total_loss = sess.run(psnet.total_loss_color, feed_dict={
+                        psnet.bn_pl: False,
+                        psnet.dropout_prob_pl: 1.0}) + sess.run(psnet.total_loss_geo, feed_dict={
+                        psnet.bn_pl: False,
+                        psnet.dropout_prob_pl: 1.0})
                 if abs(previous_loss - current_total_loss) < 1e-7 or i == iteration - 1:
-                    transferred_color = (127.5 * (np.squeeze(np.clip(sess.run(pmnet.color), -1, 1)) + 1)).astype(
+                    transferred_color = (127.5 * (np.squeeze(np.clip(sess.run(psnet.color), -1, 1)) + 1)).astype(
                         np.int16)
                     if not from_image:
-                        transferred_geo = np.squeeze(sess.run(pmnet.geo))
+                        transferred_geo = np.squeeze(sess.run(psnet.geo))
                         save_ply(transferred_geo, transferred_color,
                              os.path.join(style_dir, style_path.split("/")[-1].split(".")[0] + "_{}.ply".format(i)))
                         display_point(content_geo, transferred_color, fname=os.path.join(style_dir,

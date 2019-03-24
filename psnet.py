@@ -3,7 +3,7 @@ import os
 import numpy as np
 from pprint import pprint as ppt
 
-class Pmnet():
+class PSNet():
     def __init__(self,config, sess, train_dir,
                  mode = "train",
                  num_pts = 4096,
@@ -352,8 +352,8 @@ class Pmnet():
     def save_model(self, path, i):
         """
         save model parameters
-        :param path: 
-        :return: 
+        :param path:
+        :return:
         """
         self.model_saver.save(self.sess, path, i)
         return True
@@ -362,8 +362,8 @@ class Pmnet():
     def restore_model(self, model_path):
         """
         restore model graph and parameters from path
-        :param model_path: 
-        :return: 
+        :param model_path:
+        :return:
         """
         self.model_saver.restore(self.sess, model_path)
         return True
@@ -397,6 +397,3 @@ class Pmnet():
         self.log_fout.write(out_str + '\n')
         self.log_fout.flush()
         print(out_str)
-
-
-
