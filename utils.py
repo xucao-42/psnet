@@ -2,6 +2,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 import h5py
 import os
@@ -9,7 +10,7 @@ from pyntcloud import PyntCloud
 import pandas as pd
 from sklearn.metrics import auc, roc_curve
 from PIL import Image
-
+matplotlib.use('TkAgg') # for macos
 
 def show_all_trainable_variables():
     model_vars = tf.trainable_variables()
@@ -222,10 +223,10 @@ def label2onehot(labels,m):
 
 def multiclass_AUC(y_true, y_pred):
     """
-    
+
     :param y_true: shape (num_instance,)
     :param y_pred: shape (num_instance, num_class)
-    :return: 
+    :return:
     """
     num_classes = np.unique(y_true).shape[0]
     print(num_classes)
@@ -246,7 +247,7 @@ def multiclass_AUC(y_true, y_pred):
 
 def softmax(logits):
     """
-    
+
     :param logits: of shape (num_instance, num_classes)
     :return: prob of the same shape as that of logits, with each row summed up to 1
     """
@@ -260,7 +261,7 @@ def softmax(logits):
 def construct_label_weight(label, weight):
     """
 
-    :param label: a numpy ndarray of shape (batch_size,) with each entry in [0, num_class) 
+    :param label: a numpy ndarray of shape (batch_size,) with each entry in [0, num_class)
     :param weight: weight list of length num_class
     :return: a numpy ndarray of the same shape as that of label
     """

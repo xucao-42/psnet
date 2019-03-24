@@ -12,6 +12,8 @@ ope = os.path.exists
 om = os.mkdir
 import glob
 
+os.environ['KMP_DUPLICATE_LIB_OK']='True' #for macos
+
 np.random.seed(42)
 trained_model = "./trained_model/model"
 st_time = str(time.strftime('%Y_%m_%d_%H_%M', time.localtime(time.time())))
