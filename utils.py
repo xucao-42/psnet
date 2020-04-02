@@ -11,7 +11,7 @@ from PIL import Image
 from pyntcloud import PyntCloud
 from sklearn.metrics import auc, roc_curve
 
-# matplotlib.use('TkAgg')  #uncomment this line if you are using macos
+matplotlib.use('TkAgg')  #uncomment this line if you are using macos
 
 
 def show_all_trainable_variables():
@@ -56,7 +56,7 @@ def display_point(pts, color, color_label=None, title=None, fname=None, axis="on
         if title is not None:
             ax.set_title(title, fontdict={'fontsize': 30})
 
-        # ax.set_aspect("equal")
+        ax.set_aspect("equal")
         # ax.grid("off")
         if fname:
             plt.savefig(fname, transparent=True, dpi=DPI)
