@@ -1,18 +1,19 @@
-from psnet import PSNet
 import configparser
-import os
-import tensorflow as tf
-from pprint import pprint as ppt
-import numpy as np
-from utils import *
-import time
 import shutil
+import time
+from pprint import pprint as ppt
+
+import tensorflow as tf
+
+from psnet import PSNet
+from utils import *
+
 opj = os.path.join
 ope = os.path.exists
 om = os.mkdir
 import glob
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True' #for macos
+# os.environ['KMP_DUPLICATE_LIB_OK']='True' # Uncomment this line if you are using macOS
 
 np.random.seed(42)
 trained_model = "./trained_model/model"
@@ -27,12 +28,12 @@ config = configparser.ConfigParser()
 config.read(os.path.join(st_dir, "config.ini"))
 
 # a list of path to content/style point clouds or images
-CONTENT_LIST = glob.glob("./sample content/*")
-STYLE_LIST = glob.glob("./sample style/*")
+CONTENT_LIST = glob.glob("./sample_content/*")
+STYLE_LIST = glob.glob("./sample_style/*")
 iteration = 10000
 
-content_layer = list(map(lambda x: int(x),config["style_transfer"]["content_layer"].split(",")))
-style_layer = list(map(lambda x: int(x),config["style_transfer"]["content_layer"].split(",")))
+content_layer = list(map(lambda x: int(x), config["style_transfer"]["content_layer"].split(",")))
+style_layer = list(map(lambda x: int(x), config["style_transfer"]["content_layer"].split(",")))
 use_content_color = ["FE_COLOR_FE_{}".format(i) for i in content_layer]
 use_style_color = ["FE_COLOR_FE_{}".format(i) for i in style_layer]
 
@@ -40,7 +41,7 @@ for idx, content_path in enumerate(CONTENT_LIST):
     content_dir = opj(st_dir, str(idx))
     if not ope(content_dir):
         om(content_dir)
-    content_geo,content_ncolor = prepare_content_or_style(content_path)
+    content_geo, content_ncolor = prepare_content_or_style(content_path)
     content_color = (127.5 * (content_ncolor + 1)).astype(np.int16)
     display_point(content_geo, content_color, fname=os.path.join(content_dir, "content.png"), axis="off", marker_size=3)
 
@@ -58,10 +59,10 @@ for idx, content_path in enumerate(CONTENT_LIST):
     #                                 feed_dict={psnet.color: content_ncolor[None, ...],
     #                                            psnet.bn_pl: False,
     #                                            psnet.dropout_prob_pl: 1.0})
-    obtained_content_fvs = sess.run(psnet.node,feed_dict={psnet.color: content_ncolor[None, ...],
-                                               psnet.geo: content_geo[None,...],
-                                               psnet.bn_pl: False,
-                                               psnet.dropout_prob_pl: 1.0})
+    obtained_content_fvs = sess.run(psnet.node, feed_dict={psnet.color: content_ncolor[None, ...],
+                                                           psnet.geo: content_geo[None, ...],
+                                                           psnet.bn_pl: False,
+                                                           psnet.dropout_prob_pl: 1.0})
     sess.close()
 
     for st_idx, style_path in enumerate(STYLE_LIST):
@@ -77,7 +78,7 @@ for idx, content_path in enumerate(CONTENT_LIST):
             style_geo, style_ncolor = prepare_content_or_style(style_path)
             style_color = (127.5 * (style_ncolor + 1)).astype(np.int16)
             display_point(style_geo, style_color, fname=os.path.join(style_dir, "style.png"), axis="off",
-                      marker_size=3)
+                          marker_size=3)
 
         # get style representations
         tf.reset_default_graph()
@@ -89,10 +90,10 @@ for idx, content_path in enumerate(CONTENT_LIST):
                       num_pts=style_ncolor.shape[0])
         psnet.restore_model(trained_model)
         if from_image:
-            obtained_style_fvs = sess.run({i:psnet.node_color[i] for i in use_style_color},
-                                      feed_dict={psnet.color: style_ncolor[None, ...],
-                                                 psnet.bn_pl: False,
-                                                 psnet.dropout_prob_pl: 1.0})
+            obtained_style_fvs = sess.run({i: psnet.node_color[i] for i in use_style_color},
+                                          feed_dict={psnet.color: style_ncolor[None, ...],
+                                                     psnet.bn_pl: False,
+                                                     psnet.dropout_prob_pl: 1.0})
         else:
             obtained_style_fvs = sess.run(psnet.node,
                                           feed_dict={psnet.color: style_ncolor[None, ...],
@@ -112,23 +113,23 @@ for idx, content_path in enumerate(CONTENT_LIST):
         with tf.Graph().as_default() as graph:
             sess = tf.Session()
             psnet = PSNet(config=config,
-                              sess=sess,
-                              train_dir=style_dir,
-                              mode="styletransfer",
-                              num_pts=content_geo.shape[0], # should be the same as content
-                              target_content=obtained_content_fvs,
-                              target_style=obtained_style_fvs_gram,
-                              geo_init= tf.constant_initializer(value=content_geo),
-                              color_init=tf.constant_initializer(value=content_ncolor),
-                              from_image=from_image)
+                          sess=sess,
+                          train_dir=style_dir,
+                          mode="styletransfer",
+                          num_pts=content_geo.shape[0],  # should be the same as content
+                          target_content=obtained_content_fvs,
+                          target_style=obtained_style_fvs_gram,
+                          geo_init=tf.constant_initializer(value=content_geo),
+                          color_init=tf.constant_initializer(value=content_ncolor),
+                          from_image=from_image)
             psnet.restore_model(trained_model)
             previous_loss = float("inf")
-            for i in range(iteration) :
+            for i in range(iteration):
                 psnet.style_transfer_one_step()
                 if from_image:
                     current_total_loss = sess.run(psnet.total_loss_color, feed_dict={
-                                                 psnet.bn_pl: False,
-                                                 psnet.dropout_prob_pl: 1.0})
+                        psnet.bn_pl: False,
+                        psnet.dropout_prob_pl: 1.0})
                 else:
                     current_total_loss = sess.run(psnet.total_loss_color, feed_dict={
                         psnet.bn_pl: False,
@@ -141,18 +142,33 @@ for idx, content_path in enumerate(CONTENT_LIST):
                     if not from_image:
                         transferred_geo = np.squeeze(sess.run(psnet.geo))
                         save_ply(transferred_geo, transferred_color,
-                             os.path.join(style_dir, style_path.split("/")[-1].split(".")[0] + "_{}.ply".format(i)))
+                                 os.path.join(style_dir, style_path.split("/")[-1].split(".")[0] + "_{}.ply".format(i)))
                         display_point(content_geo, transferred_color, fname=os.path.join(style_dir,
-                            style_path.split("/")[-1].split(".")[0] + "_color_{}.png".format(i)), axis="off",marker_size=2)
+                                                                                         style_path.split("/")[
+                                                                                             -1].split(".")[
+                                                                                             0] + "_color_{}.png".format(
+                                                                                             i)), axis="off",
+                                      marker_size=2)
                         display_point(transferred_geo, transferred_color, fname=os.path.join(style_dir,
-                            style_path.split("/")[-1].split(".")[0] + "_both_{}.png".format(i)), axis="off",marker_size=2)
+                                                                                             style_path.split("/")[
+                                                                                                 -1].split(".")[
+                                                                                                 0] + "_both_{}.png".format(
+                                                                                                 i)), axis="off",
+                                      marker_size=2)
                         display_point(transferred_geo, content_color, fname=os.path.join(style_dir,
-                            style_path.split("/")[-1].split(".")[0] + "_geo_{}.png".format(i)), axis="off",marker_size=2)
+                                                                                         style_path.split("/")[
+                                                                                             -1].split(".")[
+                                                                                             0] + "_geo_{}.png".format(
+                                                                                             i)), axis="off",
+                                      marker_size=2)
                     else:
                         save_ply(content_geo, transferred_color,
                                  os.path.join(style_dir, style_path.split("/")[-1].split(".")[0] + "_{}.ply".format(i)))
                         display_point(content_geo, transferred_color, fname=os.path.join(style_dir,
-                            style_path.split("/")[-1].split(".")[0] + "_color_{}.png".format(i)), axis="off",
+                                                                                         style_path.split("/")[
+                                                                                             -1].split(".")[
+                                                                                             0] + "_color_{}.png".format(
+                                                                                             i)), axis="off",
                                       marker_size=2)
 
                     break

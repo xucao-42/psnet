@@ -9,16 +9,6 @@ class PSNet():
                  num_pts = 4096,
                  late_fusion = True,
                  **st_dict):
-        # {"target_content_geo": (),  # a dict of content representations
-        #  "target_content_color": (),
-        #  "target_style_geo": (),
-        #  "target_style_color": (),
-        #  "geo_init": tf.truncated_normal_initializer(mean=0, stddev=0.5),
-        #  "color_init": tf.truncated_normal_initializer(mean=0, stddev=0.5),
-        #  "beta_color": 100,
-        #  "beta_geo": 10,
-        #  "content_layer": (1,),
-        #  "style_layer": (3, 4)}
         # define model structure
         self.fe_layer_units = list(map(lambda x: int(x), config["modelstructure"]["fe_layer"].split(",")))
         self.fc_layer_units = list(map(lambda x: int(x), config["modelstructure"]["fc_layer"].split(",")))

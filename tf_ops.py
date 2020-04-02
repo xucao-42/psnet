@@ -1,22 +1,24 @@
 import tensorflow as tf
 
+
 class BatchNorm(object):
-    def __init__(self, epsilon=1e-5, momentum = 0.99, name="batch_norm"):
+    def __init__(self, epsilon=1e-5, momentum=0.99, name="batch_norm"):
         with tf.variable_scope(name):
-            self.epsilon  = epsilon
+            self.epsilon = epsilon
             self.momentum = momentum
             self.name = name
 
     def __call__(self, x, is_training):
         return tf.contrib.layers.batch_norm(x,
-                      decay=self.momentum,
-                      epsilon=self.epsilon,
-                      updates_collections=None,
-                      scale=True,
-                      is_training=is_training,
-                      scope=self.name)
+                                            decay=self.momentum,
+                                            epsilon=self.epsilon,
+                                            updates_collections=None,
+                                            scale=True,
+                                            is_training=is_training,
+                                            scope=self.name)
 
-def FE_layer(inputs, cout,aggregate_global=True, bn_is_training = True, scope = "FE_layer"):
+
+def FE_layer(inputs, cout, aggregate_global=True, bn_is_training=True, scope="FE_layer"):
     """
 
     :param inputs: a tensor of shape (batch_size, num_pts, cin)
@@ -34,20 +36,21 @@ def FE_layer(inputs, cout,aggregate_global=True, bn_is_training = True, scope = 
                                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.02))
         batch_norm = BatchNorm()
         point_wise_feature = batch_norm(point_wise_feature, is_training=bn_is_training)
-        point_wise_feature = tf.nn.leaky_relu(point_wise_feature) # (batch_size, num_pts, cout // 2)
+        point_wise_feature = tf.nn.leaky_relu(point_wise_feature)  # (batch_size, num_pts, cout // 2)
         if aggregate_global:
-            aggregated_feature = tf.reduce_max(point_wise_feature, axis=1, keepdims= True)   # batch_size, 1, cout//2
-            repeated = tf.tile(aggregated_feature, [1, num_pts, 1]) # (batch_size, num_pts, cout // 2)
+            aggregated_feature = tf.reduce_max(point_wise_feature, axis=1, keepdims=True)  # batch_size, 1, cout//2
+            repeated = tf.tile(aggregated_feature, [1, num_pts, 1])  # (batch_size, num_pts, cout // 2)
             point_wise_concatenated_feature = tf.concat(axis=-1, values=[point_wise_feature, repeated])
             return point_wise_feature, point_wise_concatenated_feature
         else:
             return point_wise_feature, point_wise_feature
 
+
 def dense_norm_nonlinear(inputs, units,
                          norm_type=None,
                          is_training=None,
                          activation_fn=tf.nn.relu,
-                        scope="fc"):
+                         scope="fc"):
     """
     :param inputs: tensor of shape (batch_size, ...,n) from last layer
     :param units: output units

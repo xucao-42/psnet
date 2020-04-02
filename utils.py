@@ -1,61 +1,29 @@
+import os
+
+import h5py
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-from mpl_toolkits.mplot3d import Axes3D
-import h5py
-import os
-from pyntcloud import PyntCloud
-import pandas as pd
-from sklearn.metrics import auc, roc_curve
 from PIL import Image
-matplotlib.use('TkAgg') # for macos
+from pyntcloud import PyntCloud
+from sklearn.metrics import auc, roc_curve
+
+# matplotlib.use('TkAgg')  #uncomment this line if you are using macos
+
 
 def show_all_trainable_variables():
     model_vars = tf.trainable_variables()
     slim.model_analyzer.analyze_vars(model_vars, print_info=True)
 
 
-def directed_hausdorff_distance(ptsA, ptsB):
-    """
-    This function computes  directed hausdorff distance as h(A,B)=max{min{d(a,b)}}
-    refer: http://cgm.cs.mcgill.ca/~godfried/teaching/cg-projects/98/normand/main.html
-    :param ptsA: numpy array of shape (Na, Nf)
-    :param ptsB: numpy array of shape (Nb, Nf)
-    :return:
-    """
-    assert ptsA.ndim == ptsB.ndim
-    ptsA, ptsB = np.squeeze(ptsA), np.squeeze(ptsB)
-    list_min = []
-    for pts in ptsA:
-        list_min.append(np.min(np.sqrt(np.sum((ptsB - pts) ** 2, axis=1))))
-    return max(list_min)
-
-
-def hausdorff_distance(ptsA, ptsB):
-    """
-    This function computes  directed hausdorff distance as H(A, B) = max{h(A,B), h(B,A)}
-    :param ptsA:
-    :param ptsB:
-    :return:
-    """
-    return max([directed_hausdorff_distance(ptsA, ptsB), directed_hausdorff_distance(ptsB, ptsA)])
-
-
-def display_point(pts, color, color_label=None, title=None, fname=None, axis = "on", marker_size=5):
-    """
-
-    :param pts:
-    :param color:
-    :param color_label:
-    :param fname: save path and filename of the figue
-    :return:
-    """
+def display_point(pts, color, color_label=None, title=None, fname=None, axis="on", marker_size=5):
     pts = np.squeeze(pts)
     if isinstance(color, np.ndarray):
         color = np_color_to_hex_str(np.squeeze(color))
-    DPI =300
+    DPI = 300
     PIX_h = 1000
     MARKER_SIZE = marker_size
     if color_label is None:
@@ -70,7 +38,7 @@ def display_point(pts, color, color_label=None, title=None, fname=None, axis = "
     mid_y = (Y.max() + Y.min()) * 0.5
     mid_z = (Z.max() + Z.min()) * 0.5
     fig = plt.figure()
-    fig.set_size_inches(PIX_w/DPI, PIX_h/DPI)
+    fig.set_size_inches(PIX_w / DPI, PIX_h / DPI)
     if axis == "off":
         plt.subplots_adjust(top=1.2, bottom=-0.2, right=1.5, left=-0.5, hspace=0, wspace=-0.7)
     plt.margins(0, 0)
@@ -88,7 +56,7 @@ def display_point(pts, color, color_label=None, title=None, fname=None, axis = "
         if title is not None:
             ax.set_title(title, fontdict={'fontsize': 30})
 
-        ax.set_aspect("equal")
+        # ax.set_aspect("equal")
         # ax.grid("off")
         if fname:
             plt.savefig(fname, transparent=True, dpi=DPI)
@@ -131,6 +99,7 @@ def int16_to_hex_str(color):
     hex_str += color_map[color % 16]
     return hex_str
 
+
 def horizontal_concatnate_pic(fout, *fnames):
     images = [Image.open(i).convert('RGB') for i in fnames]
     # images = map(Image.open, fnames)
@@ -148,17 +117,17 @@ def horizontal_concatnate_pic(fout, *fnames):
 
     new_im.save(fout)
 
+
 def vertical_concatnate_pic(fout, *fnames):
     images = [Image.open(i).convert('RGB') for i in fnames]
     # images = map(Image.open, fnames)
     widths, heights = zip(*(i.size for i in images))
     max_widths = max(widths)
-    width_ratio = [max_widths/width for width in widths]
+    width_ratio = [max_widths / width for width in widths]
     new_height = [int(width_ratio[idx]) * height for idx, height in enumerate(heights)]
 
-    new_images = [i.resize((max_widths, new_height[idx])) for idx,i in enumerate(images)]
+    new_images = [i.resize((max_widths, new_height[idx])) for idx, i in enumerate(images)]
     total_heights = sum(new_height)
-
 
     new_im = Image.new('RGB', (max_widths, total_heights))
 
@@ -168,6 +137,7 @@ def vertical_concatnate_pic(fout, *fnames):
         x_offset += im.size[1]
 
     new_im.save(fout)
+
 
 def rgb_to_hex_str(*rgb):
     hex_str = "#"
@@ -194,32 +164,37 @@ def load_h5(path, *kwd):
         list_.append(f[item][:])
         print("{0} of shape {1} loaded!".format(item, f[item][:].shape))
         if item == "ndata" or item == "data":
-            pass# print(np.mean(f[item][:], axis=1))
+            pass  # print(np.mean(f[item][:], axis=1))
         if item == "color":
             print("color is of type {}".format(f[item][:].dtype))
     return list_
 
-def load_single_cat_h5(cat,num_pts,type, *kwd):
+
+def load_single_cat_h5(cat, num_pts, type, *kwd):
     fpath = os.path.join("./data/category_h5py", cat, "PTS_{}".format(num_pts), "ply_data_{}.h5".format(type))
     return load_h5(fpath, *kwd)
 
-def printout(flog, data): # follow up
+
+def printout(flog, data):  # follow up
     print(data)
     flog.write(data + '\n')
 
+
 def save_ply(data, color, fname):
     color = color.astype(np.uint8)
-    df1 = pd.DataFrame(data, columns=["x","y","z"])
-    df2 = pd.DataFrame(color, columns=["red","green","blue"])
+    df1 = pd.DataFrame(data, columns=["x", "y", "z"])
+    df2 = pd.DataFrame(color, columns=["red", "green", "blue"])
     pc = PyntCloud(pd.concat([df1, df2], axis=1))
     pc.to_file(fname)
 
-def label2onehot(labels,m):
+
+def label2onehot(labels, m):
     idx = np.eye(m)
     onehot_labels = np.zeros(shape=(labels.shape[0], m))
     for idx, i in enumerate(labels):
         onehot_labels[idx] = idx[i]
     return onehot_labels
+
 
 def multiclass_AUC(y_true, y_pred):
     """
@@ -236,14 +211,15 @@ def multiclass_AUC(y_true, y_pred):
     num_instance = dict()
     total_roc_auc = 0
     for i in range(num_classes):
-        binary_label = np.where(y_true==i, 1, 0)
+        binary_label = np.where(y_true == i, 1, 0)
         class_score = y_pred[:, i]
         num_instance[i] = np.sum(y_true == i)
         fpr[i], tpr[i], _ = roc_curve(binary_label, class_score)
         roc_auc[i] = auc(fpr[i], tpr[i])
         total_roc_auc += roc_auc[i]
-    return total_roc_auc/16
-    #print(roc_auc, num_instance)
+    return total_roc_auc / 16
+    # print(roc_auc, num_instance)
+
 
 def softmax(logits):
     """
@@ -252,11 +228,12 @@ def softmax(logits):
     :return: prob of the same shape as that of logits, with each row summed up to 1
     """
     assert logits.shape[-1] == 16
-    regulazation = np.max(logits, axis=-1) #(num_instance,)
+    regulazation = np.max(logits, axis=-1)  # (num_instance,)
     logits -= regulazation[:, np.newaxis]
-    prob = np.exp(logits)/np.sum(np.exp(logits), axis=-1)[:, np.newaxis]
+    prob = np.exp(logits) / np.sum(np.exp(logits), axis=-1)[:, np.newaxis]
     assert prob.shape == logits.shape
     return prob
+
 
 def construct_label_weight(label, weight):
     """
@@ -267,6 +244,7 @@ def construct_label_weight(label, weight):
     """
     return [weight[i] for i in label]
 
+
 def jitter_point_cloud(batch_data, sigma=0.01, clip=0.05):
     """ Randomly jitter points. jittering is per point.
         Input:
@@ -275,10 +253,11 @@ def jitter_point_cloud(batch_data, sigma=0.01, clip=0.05):
           BxNx3 array, jittered batch of point clouds
     """
     B, N, C = batch_data.shape
-    assert(clip > 0)
-    jittered_data = np.clip(sigma * np.random.randn(B, N, C), -1*clip, clip)
+    assert (clip > 0)
+    jittered_data = np.clip(sigma * np.random.randn(B, N, C), -1 * clip, clip)
     jittered_data += batch_data
     return jittered_data
+
 
 def generate_sphere(num_pts, radius):
     # http://electron9.phys.utk.edu/vectors/3dcoordinates.htm
@@ -290,6 +269,7 @@ def generate_sphere(num_pts, radius):
     z = r * np.cos(q)
     return np.concatenate((x, y, z), axis=-1)
 
+
 def generate_sphere_surface(num_pts, radius):
     r = radius
     f = np.random.rand(num_pts, 1) * np.pi * 2
@@ -299,16 +279,20 @@ def generate_sphere_surface(num_pts, radius):
     z = r * np.cos(q)
     return np.concatenate((x, y, z), axis=-1)
 
+
 def generate_cube(num_pts, length):
     return (np.random.rand(num_pts, 3) - 0.5) * length
+
 
 def generate_cube_surface(num_pts, length):
     pass
 
+
 def generate_ncolor(num_pts):
     return ((np.ones((num_pts, 3)) * 127) - 127.5) / 127.5
 
-def generate_plane(num_pts, length, type = "xy"):
+
+def generate_plane(num_pts, length, type="xy"):
     pts = (np.random.rand(num_pts, 2) - 0.5) * length
     if type == "xy":
         pts = np.insert(pts, 2, 0, axis=1)
@@ -318,6 +302,7 @@ def generate_plane(num_pts, length, type = "xy"):
         pts = np.insert(pts, 0, 0, axis=1)
     return pts
 
+
 def img_to_set(img_path, img_name):
     img = Image.open(os.path.join(img_path, img_name)).convert('RGB')
     w, h = img.size
@@ -326,13 +311,14 @@ def img_to_set(img_path, img_name):
     print(img.size)
     return np.reshape(np.array(img), [-1, 3])
 
-def prepare_content_or_style(path, downsample_points = None):
+
+def prepare_content_or_style(path, downsample_points=None):
     if path.endswith("ply"):
         content = PyntCloud.from_file(path).points.values
         if downsample_points:
             mask = np.random.choice(content.shape[0], downsample_points)
             content = content[mask]
-        content_ndata = content[:,:3]
+        content_ndata = content[:, :3]
         content_ncolor = (content[:, 3:6] - 127.5) / 127.5
         return content_ndata, content_ncolor
     elif path.endswith("npy"):
@@ -351,30 +337,3 @@ def prepare_content_or_style(path, downsample_points = None):
             mask = np.random.choice(style_color.shape[0], downsample_points)
             style_color = style_color[mask]
         return style_color
-
-
-
-
-if __name__ == "__main__":
-            # pass
-            # label = np.array([0, 1, 2, 2])
-            # pred = np.array([[0.8, 0.1, 0.1],
-            #         [0.2, 0.7, 0.1],
-            #         [0.3, 0.1, 0.6],
-            #         [0.25, 0.25, 0.5]])
-            # multiclass_AUC(label, pred)
-    # a = np.array([[1, 2, 3],
-    #               [2, 3, 4]])
-    # b = np.array([[2, 2, 3],
-    #               [3, 4, 5]])
-    # print(directed_hausdorff_distance(a, b))
-    # print(hausdorff_distance(a, b))
-    # pts_path = r"F:\ShapeNetPartC\category_h5py\02691156_airplane,aeroplane,plane\PTS_4096\ply_data_val.h5"
-    # output_dir = r"F:\ShapeNetPartC\category_h5py\02691156_airplane,aeroplane,plane\PTS_4096\g.png"
-    # pts, color, pid = load_h5(pts_path, "data", "color", "pid")
-    # K = 62
-    # hex_color = color[K]
-    # display_point(pts[K], np_color_to_hex_str(hex_color), pid[K], output_dir)
-    img = img_to_set("image_style","Sunflowers.jpg")
-    # plt.hist(img)
-    # plt.show()
